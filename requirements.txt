@@ -1,0 +1,10 @@
+numpy>=2.2.3
+pandas>=2.2.3
+plotly>=6.0.0
+pyarrow>=19.0.1
+streamlit>=1.43.1
+datasets
+boto3
+pydub
+python-dotenv
+soundfile
