@@ -16,7 +16,6 @@ st.markdown("""
     ### Bienvenue sur MooreFrCollection
     Aidez-nous à casser la barrière de la langue et à améliorer l'accès aux ressources en mooré. 
             
-    Cette plateforme permet de collecter des audios, de les transcrire et de les traduire.
     
     MooreFrCollection a pour but de collecter des ressources en mooré pour la mise en place de plusieurs IA locaux. 
             
@@ -37,13 +36,10 @@ st.markdown("""
        - `#silence` - Pour indiquer un silence prolongé
     
     3. Exemple:
-    **transcription**:  Gɛɛla karẽn-biisa naan maana wags-taaba rasem a yiib pʋgẽ
-    **traduction** :Les étudiants en mathématiques feront un examen dans deux jours
-
-   
-
-
-
+    
+    **transcription**: `#rires` Gɛɛla karẽn-biisa naan maana wags-taaba rasem a yiib pʋgẽ
+    
+    **traduction** : `#rires` Les étudiants en mathématiques feront un examen dans deux jours
 
 
 
