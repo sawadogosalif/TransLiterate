@@ -22,6 +22,31 @@ st.markdown("""
             
     Votre participation est essentielle pour enrichir la base de données et faciliter la traduction de la langue mooré.
 
+    
+    ### Points importants à connaître:
+    
+    Pour la transcription et traduction des fichiers audio, gardez en tête les consignes suivantes:
+    
+    1. **Simplicité d'abord**: Pas besoin de faire une traduction parfaite, restituez simplement le contenu de manière claire et compréhensible.
+    
+    2. **Éléments spéciaux**: N'hésitez pas à mentionner les éléments non-verbaux dans la transcription:
+       - `#rires` - Pour indiquer des rires
+       - `#pleurs` - Pour indiquer des pleurs
+       - `#MUSIQUE` - Pour indiquer de la musique
+       - `#BRUIT` - Pour indiquer des bruits de fond significatifs
+       - `#silence` - Pour indiquer un silence prolongé
+    
+    3. Exemple:
+    **transcription**:  Gɛɛla karẽn-biisa naan maana wags-taaba rasem a yiib pʋgẽ
+    **traduction** :Les étudiants en mathématiques feront un examen dans deux jours
+
+   
+
+
+
+
+
+
     ### L'Alphabet Mooré
     Voici l'alphabet mooré attendu :
 """)
