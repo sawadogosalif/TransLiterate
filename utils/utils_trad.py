@@ -35,7 +35,7 @@ def list_audio_files_by_title():
     grouped = {}
     for obj in response["Contents"]:
         key = obj["Key"]
-        if not key.endswith(".mp3"):
+        if not key.endswith(".wav"):
             continue
         parts = key.split("/")
         if len(parts) >= 3:
@@ -67,7 +67,7 @@ def get_audio_duration_from_s3(bucket, key):
 def save_annotation(audio_path, user, transcription, traduction):
     """Sauvegarde l'annotation de l'utilisateur dans S3."""
     duration = get_audio_duration_from_s3(S3_BUCKET, audio_path)
-    base_filename = os.path.basename(audio_path).replace(".mp3", "")
+    base_filename = os.path.basename(audio_path).replace(".wav", "")
     path_parts = audio_path.split('/')
     title = path_parts[-2]
     annotation_key = f"{ANNOTATIONS_PREFIX}/{title}/{base_filename}__{user}.json"
@@ -121,6 +121,6 @@ def get_processed_audio_files_by_user_and_title(username: str, title: str) -> se
         for obj in page.get("Contents", []):
             key = obj["Key"]
             if key.endswith(f"__{username}.json"):
-                filename_with_ext = key.split("/")[-1].replace(f"__{username}.json", ".mp3")
+                filename_with_ext = key.split("/")[-1].replace(f"__{username}.json", ".wav")
                 processed_files.add(filename_with_ext)
     return processed_files
