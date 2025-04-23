@@ -36,10 +36,8 @@ st.markdown("""
        - `#silence` - Pour indiquer un silence prolongé
     
     3. Exemple:
-    
-    **transcription**: `#rires` Gɛɛla karẽn-biisa naan maana wags-taaba rasem a yiib pʋgẽ
-    
-    **traduction** : `#rires` Les étudiants en mathématiques feront un examen dans deux jours
+        - **transcription**: `#rires` Gɛɛla karẽn-biisa naan maana wags-taaba rasem a yiib pʋgẽ
+        - **traduction** : `#rires` Les étudiants en mathématiques feront un examen dans deux jours
 
 
 
