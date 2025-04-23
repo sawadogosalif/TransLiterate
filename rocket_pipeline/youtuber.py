@@ -5,6 +5,7 @@ from tqdm import tqdm
 from pydub import AudioSegment
 from yt_dlp import YoutubeDL
 from dotenv import load_dotenv
+load_dotenv()
 
 
 
@@ -28,10 +29,9 @@ def filter_videos_by_keywords(candidates, keywords):
     logger.info(f"Filtrage terminé: {len(filtered_videos)}/{len(candidates)} vidéos correspondent aux mots-clés {keywords}")
     return filtered_videos
 
-def get_videos_from_channel(channel_url=None):
+def get_videos_from_channel(channel_url):
 
-    if channel_url is None:
-        channel_url = CHANNEL_URL
+
         
     logger.info(f"Extraction des vidéos depuis la chaîne: {channel_url}")
     
@@ -52,7 +52,7 @@ def get_videos_from_channel(channel_url=None):
             logger.warning("Aucune vidéo trouvée sur cette chaîne")
             return []
 
-def download_youtube_audios(videos, output_dir=None):
+def download_youtube_audios(videos, output_dir):
     """
     Télécharge les fichiers audio des vidéos YouTube.
     
@@ -60,9 +60,7 @@ def download_youtube_audios(videos, output_dir=None):
         videos: Liste des vidéos à télécharger
         output_dir: Répertoire de sortie (utilise INPUT_DIR par défaut)
     """
-    if output_dir is None:
-        output_dir = INPUT_DIR
-        
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
@@ -83,7 +81,7 @@ def download_youtube_audios(videos, output_dir=None):
             except Exception as e:
                 logger.error(f"Erreur lors du téléchargement de {video.get('title', video.get('id', 'inconnu'))}: {str(e)}")
 
-def segment_audio_files(input_dir=None, output_dir=None, segment_length=None):
+def segment_audio_files(input_dir, output_dir, segment_length):
     """
     Découpe les fichiers audio en segments.
     
@@ -95,12 +93,7 @@ def segment_audio_files(input_dir=None, output_dir=None, segment_length=None):
     Returns:
         Nombre total de segments créés
     """
-    if input_dir is None:
-        input_dir = INPUT_DIR
-    if output_dir is None:
-        output_dir = OUTPUT_DIR
-    if segment_length is None:
-        segment_length = SEGMENT_LENGTH_MS
+
     
     wav_files = [f for f in os.listdir(input_dir) if f.endswith(".wav")]
     logger.info(f"Nombre de fichiers WAV à traiter: {len(wav_files)}")
@@ -175,12 +168,7 @@ def upload_file_to_s3(s3_client, local_path, bucket_name, s3_key):
     except Exception as e:
         logger.error(f"Erreur lors de l'upload de {local_path}: {str(e)}")
 
-def upload_segments_to_s3(segments, bucket_name=None, prefix=None):
-
-    if bucket_name is None:
-        bucket_name = BUCKET_NAME
-    if prefix is None:
-        prefix = S3_PREFIX
+def upload_segments_to_s3(segments, bucket_name, prefix, segments_folder):
     
     s3_client = setup_s3_client()
     if not s3_client:
@@ -192,9 +180,9 @@ def upload_segments_to_s3(segments, bucket_name=None, prefix=None):
     
     for segment_path in tqdm(segments, desc="Upload des segments vers S3"):
         try:
-            relative_path = os.path.relpath(segment_path, start=OUTPUT_DIR)
-            s3_key = os.path.join(prefix, relative_path)
-            
+            relative_path = os.path.relpath(segment_path, start=segments_folder)
+            s3_key = f"{prefix}/{relative_path.replace(os.sep, '/')}"
+
             upload_file_to_s3(s3_client, segment_path, bucket_name, s3_key)
             uploaded_count += 1
         except Exception as e:
@@ -212,31 +200,31 @@ def main():
 
     CHANNEL_URL = "https://www.youtube.com/@livenewsafrica/" 
 
-    # Configuration des répertoires
-    INPUT_DIR = "audios_sidpa"  # Répertoire pour les fichiers audio téléchargés
-    OUTPUT_DIR = "audios_segments"  # Répertoire pour les segments audio
+    RAW_AUDIO_DIR = "audios_sidpa_wav"  
+    SEGMENT_AUDIO_DIR = "audios_segments_wav" 
 
     # Durée des segments en millisecondes
     SEGMENT_LENGTH_MS = 30 * 1000  # 30 secondes par défaut
 
     # Configuration S3
-    BUCKET_NAME = "moore-collection"  # Nom de votre bucket S3
-    S3_PREFIX = "audios_to_tests"  # Préfixe pour les fichiers dans S3
-    USE_S3 = False  # Mettre à True pour activer les opérations S3
+    BUCKET_NAME = "moore-collection"  
+    S3_PREFIX = "audios_wav" 
+    USE_S3 = True  # Mettre à True pour activer les opérations S3
     # ====================== FIN CHANGE ME ======================
 
-    os.makedirs(INPUT_DIR, exist_ok=True)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(RAW_AUDIO_DIR, exist_ok=True)
+    os.makedirs(SEGMENT_AUDIO_DIR, exist_ok=True)
+
     logger.info("Démarrage du traitement des fichiers audio")
     
-    videos = get_videos_from_channel()
+    videos = get_videos_from_channel(CHANNEL_URL)
     filtered_videos = filter_videos_by_keywords(videos, keywords=["sid pa"])
-    download_youtube_audios(filtered_videos)
+    download_youtube_audios(filtered_videos, RAW_AUDIO_DIR)
     
-    total_segments, processed_segments = segment_audio_files()
+    total_segments, processed_segments = segment_audio_files(RAW_AUDIO_DIR, SEGMENT_AUDIO_DIR, SEGMENT_LENGTH_MS)
     
     if USE_S3:
-        upload_segments_to_s3(processed_segments)
+        upload_segments_to_s3(processed_segments, BUCKET_NAME, S3_PREFIX, SEGMENT_AUDIO_DIR)
     
     logger.info("Traitement terminé avec succès")
 
