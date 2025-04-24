@@ -8,3 +8,4 @@ boto3
 pydub
 python-dotenv
 soundfile
+s3fs
