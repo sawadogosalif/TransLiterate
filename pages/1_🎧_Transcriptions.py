@@ -1,6 +1,7 @@
 import streamlit as st
 from urllib.parse import unquote
 import os
+import json
 from utils.utils_trad import get_total_audio_duration_by_user, list_audio_files_by_title, get_processed_audio_files_by_user_and_title, get_audio_url, save_annotation
 from dotenv import load_dotenv
 
@@ -12,9 +13,51 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL_S3")
 ANNOTATIONS_PREFIX = "annotations"
 
+import s3fs
+
+access_key = os.getenv("AWS_ACCESS_KEY_ID")
+secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+endpoint_url = os.getenv("AWS_ENDPOINT_URL_S3")
+
+fs = s3fs.S3FileSystem(
+    key=AWS_ACCESS_KEY_ID,
+    secret=AWS_SECRET_ACCESS_KEY,
+    endpoint_url=ENDPOINT_URL)
+
+
 if not all([S3_BUCKET, S3_PREFIX, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ENDPOINT_URL]):
     st.error("Veuillez configurer correctement les variables d'environnement S3.")
     st.stop()
+
+# Fonction pour vérifier les titres complètement traités
+def get_completed_titles():
+    """Renvoie la liste des titres qui n'ont plus d'audios à traiter."""
+    status_file = "title_completion_status.json"
+    
+    if os.path.exists(status_file):
+        with open(status_file, 'r') as f:
+            status = json.load(f)
+        return [title for title, is_completed in status.items() if is_completed]
+    else:
+        return []
+
+def save_title_completion_status(title, is_completed):
+    """Sauvegarde l'état de traitement d'un titre dans un fichier JSON."""
+    status_file = "title_completion_status.json"
+    
+    # Charger l'état actuel
+    if os.path.exists(status_file):
+        with fs.open(status_file, 'r') as f:
+            status = json.load(f)
+    else:
+        status = {}
+    
+    # Mettre à jour l'état
+    status[title] = is_completed
+    
+    # Sauvegarder
+    with fs.open(status_file, 'w') as f:
+        json.dump(status, f)
 
 st.set_page_config(page_title="Travaux Audio", layout="wide")
 st.title("🗣️ Travaux Audio - Transcription & Traduction")
@@ -63,7 +106,13 @@ if not audio_titles:
     st.warning("Aucun audio disponible pour l'instant.")
     st.stop()
 
-available_titles = [title for title in audio_titles.keys() if title not in st.session_state.completed_titles]
+# Obtenir les titres globalement terminés
+globally_completed_titles = get_completed_titles()
+
+# Filtrer les titres pour exclure ceux qui sont déjà terminés
+available_titles = [title for title in audio_titles.keys() 
+                   if title not in st.session_state.completed_titles
+                   and title not in globally_completed_titles]
 
 if not available_titles:
     st.success("🎉 Félicitations ! Tous les groupes d'audio disponibles sont terminés.")
@@ -92,6 +141,20 @@ unprocessed_audio_paths = [path for path in audio_paths if os.path.basename(path
 if not unprocessed_audio_paths:
     st.success(f"🎉 Vous avez déjà terminé tous les audios du groupe '{selected_title}'!")
     st.session_state.completed_titles.add(selected_title)
+    
+    # Vérifier si ce titre est complètement traité par tous les utilisateurs
+    # Cela nécessite une fonction qui vérifie si tous les audios de ce titre ont des annotations
+    all_files_processed = True
+    for audio_path in audio_paths:
+        audio_filename = os.path.basename(audio_path)
+        annotation_path = f"{ANNOTATIONS_PREFIX}/{selected_title}/{audio_filename}.json"
+        if not os.path.exists(annotation_path):
+            all_files_processed = False
+            break
+    
+    if all_files_processed:
+        save_title_completion_status(selected_title, True)
+    
     if st.button("Continuer avec un autre groupe (Terminé)"):
         st.rerun()
     st.stop()
@@ -129,7 +192,18 @@ if unprocessed_audio_paths:
             if st.session_state[index_key] >= len(unprocessed_audio_paths):
                 st.success(f"🎉 Vous avez terminé tous les audios du groupe '{selected_title}'!")
                 st.session_state.completed_titles.add(selected_title)
-                # Le bouton pour continuer est en dehors du formulaire principal
+                
+                # Vérifier si ce titre est maintenant complètement traité par tous
+                all_files_processed = True
+                for audio_path in audio_paths:
+                    audio_filename = os.path.basename(audio_path)
+                    annotation_path = f"{ANNOTATIONS_PREFIX}/{selected_title}/{audio_filename}.json"
+                    if not os.path.exists(annotation_path):
+                        all_files_processed = False
+                        break
+                
+                if all_files_processed:
+                    save_title_completion_status(selected_title, True)
             else:
                 st.rerun()
     # Bouton pour continuer après avoir potentiellement terminé un groupe (hors du formulaire)
