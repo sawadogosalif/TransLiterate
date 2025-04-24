@@ -45,10 +45,8 @@ def save_title_completion_status(title, is_completed):
     """Sauvegarde l'état de traitement d'un titre dans un fichier JSON."""
     status_file = "title_completion_status.json"
     
-    # Charger l'état actuel
-    if os.path.exists(status_file):
-        with fs.open(status_file, 'r') as f:
-            status = json.load(f)
+    with fs.open(status_file, 'r') as f:
+        status = json.load(f)
     else:
         status = {}
     
